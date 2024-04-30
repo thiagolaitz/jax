@@ -139,6 +139,7 @@ class CompatTest(bctu.CompatTestBase):
       "tf.call_tf_function",  # tested in jax2tf/tests/back_compat_tf_test.py
       "tpu_custom_call",  # tested separately
       "__gpu$xla.gpu.triton",  # tested in pallas/export_back_compat_pallas_test.py
+      "cu_threefry2x32_ffi",  # TODO(b/338022728) add the actual backwards compatibility test
     })
     not_covered = targets_to_cover.difference(covered_targets)
     self.assertEmpty(not_covered,

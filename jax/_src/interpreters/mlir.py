@@ -555,6 +555,7 @@ class LoweringParameters:
 
   # Signals that we are lowering for exporting.
   for_export: bool = False
+  export_ignore_forward_compatibility: bool = False
 
 
 @dataclasses.dataclass

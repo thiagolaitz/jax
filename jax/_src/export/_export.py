@@ -458,7 +458,9 @@ def export_back_compat(
     traced = wrapped_fun_jax.trace(*args_specs, **kwargs_specs)
     lowered = traced.lower(
         lowering_platforms=actual_lowering_platforms,
-        _private_parameters=mlir.LoweringParameters(for_export=True))
+        _private_parameters=mlir.LoweringParameters(
+            for_export=True,
+            export_ignore_forward_compatibility=config.export_ignore_forward_compatibility.value))
     return _export_lowered(
         lowered, traced.jaxpr, traced.fun_name,
         disabled_checks=disabled_checks,
@@ -541,7 +543,9 @@ def export(
     traced = fun_jit.trace(*args_specs, **kwargs_specs)
     lowered = traced.lower(
         lowering_platforms=actual_lowering_platforms,
-        _private_parameters=mlir.LoweringParameters(for_export=True))
+        _private_parameters=mlir.LoweringParameters(
+            for_export=True,
+            export_ignore_forward_compatibility=config.export_ignore_forward_compatibility.value))
     return _export_lowered(
         lowered, traced.jaxpr, traced.fun_name,
         disabled_checks=disabled_checks)
@@ -812,6 +816,7 @@ def _wrap_main_func(
           lowering_parameters=mlir.LoweringParameters(
               global_constant_computation=True,
               for_export=True,
+              export_ignore_forward_compatibility=config.export_ignore_forward_compatibility.value,
           ))
       ctx = mlir.LoweringRuleContext(
         module_context=module_context,
@@ -918,7 +923,7 @@ def _check_lowering(lowering) -> None:
 # Their backwards compatibility is tested by back_compat_test.py.
 _CUSTOM_CALL_TARGETS_GUARANTEED_STABLE = {
     "Sharding", "SPMDFullToShardShape", "SPMDShardToFullShape",
-    "cu_threefry2x32",
+    "cu_threefry2x32", "cu_threefry2x32_ffi",
     "__gpu$xla.gpu.triton",  # Pallas call on GPU
     # cholesky on CPU
     "lapack_spotrf", "lapack_dpotrf", "lapack_cpotrf", "lapack_zpotrf",
