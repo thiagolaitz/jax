@@ -694,6 +694,7 @@ class LoweringRuleContext:
   # Override module_context.platforms if not None. Used during multi-platform
   # lowering, when in a scope with a subset of the module_context.platforms.
   platforms: Sequence[str] | None = None
+  attributes: dict[str, str] | None = None
 
   def set_tokens_out(self, tokens_out: TokenSet):
     assert self.tokens_out is None, 'Should only set `tokens_out` once.'
@@ -1578,12 +1579,17 @@ def jaxpr_subcomp(ctx: ModuleContext, jaxpr: core.Jaxpr,
       avals_in = map(aval, eqn.invars)
       compute_type = eqn.ctx.compute_type if eqn.ctx is not None else None
       rule_ctx = LoweringRuleContext(
-          module_context=ctx, primitive=eqn.primitive,
+          module_context=ctx,
+          primitive=eqn.primitive,
           name_stack=source_info.name_stack,
           avals_in=avals_in,
-          avals_out=map(aval, eqn.outvars), tokens_in=tokens_in,
-          tokens_out=None, dim_var_values=dim_var_values,
-          compute_type=compute_type)
+          avals_out=map(aval, eqn.outvars),
+          tokens_in=tokens_in,
+          tokens_out=None,
+          dim_var_values=dim_var_values,
+          compute_type=compute_type,
+          attributes=eqn.ctx.attributes,
+      )
       if config.dynamic_shapes.value:
         axis_size_env = {d: read(d)[0]
                          for a in avals_in if type(a) is core.DShapedArray
@@ -1703,6 +1709,10 @@ def lower_per_platform(ctx: LoweringRuleContext,
     wrapped_out = map(wrap_singleton_ir_values, output)
     map(lambda o: wrap_compute_type_in_place(ctx, o.owner),
         util.flatten(wrapped_out))
+    map(
+        lambda o: wrap_attributes_in_place(ctx, o.owner),
+        util.flatten(wrapped_out),
+    )
     return output
 
   assert len(platforms) > 1 and len(kept_rules) >= 2, (platforms, kept_rules)
@@ -1742,6 +1752,10 @@ def lower_per_platform(ctx: LoweringRuleContext,
                         f"{description}, got output {output}") from e
       map(lambda o: wrap_compute_type_in_place(ctx, o.owner),
           util.flatten(out_nodes))
+      map(
+          lambda o: wrap_attributes_in_place(ctx, o.owner),
+          util.flatten(out_nodes),
+      )
       if inner_ctx.tokens_out is not None:
         assert len(ordered_effects) == len(inner_ctx.tokens_out)
         out_nodes = [inner_ctx.tokens_out.get(eff)
@@ -1898,6 +1912,25 @@ def wrap_compute_type_in_place(ctx, op):
     dict_attr = {"_xla_compute_type": ir.StringAttr.get(
         map_compute_type(ctx.compute_type))}
     op.operation.attributes["mhlo.frontend_attributes"] = ir.DictAttr.get(dict_attr)
+
+
+def wrap_attributes_in_place(ctx, op):
+  ctx_attributes = {}
+  existing_attributes = {}
+  if ctx.attributes:
+    for k, v in ctx.attributes.items():
+      ctx_attributes[k] = ir.StringAttr.get(v)
+    if isinstance(op, ir.Operation):
+      # combine with existing mhlo.frontend_attributes
+      op_attributes_dict = {attr.name: attr.attr for attr in op.attributes}
+      for k, attributes in op_attributes_dict.items():
+        if k == "mhlo.frontend_attributes":
+          v_dict = {attr.name: attr.attr for attr in attributes}
+          for fa_key, fa_val in v_dict.items():
+            existing_attributes[fa_key] = fa_val
+      op.attributes["mhlo.frontend_attributes"] = ir.DictAttr.get(
+          ctx_attributes | existing_attributes
+      )
 
 
 def broadcast_in_dim(ctx: LoweringRuleContext, op, aval_out: core.AbstractValue, *,

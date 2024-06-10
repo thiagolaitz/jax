@@ -71,6 +71,7 @@ from jax._src.config import (
   spmd_mode as spmd_mode,
 )
 from jax._src.core import ensure_compile_time_eval as ensure_compile_time_eval
+from jax._src.core import add_attributes as attributes
 from jax._src.environment_info import print_environment_info as print_environment_info
 
 from jax._src.lib import xla_client as _xc

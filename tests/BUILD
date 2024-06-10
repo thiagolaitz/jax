@@ -1508,6 +1508,21 @@ jax_test(
 )
 
 py_test(
+    name = "frontend_attributes_test",
+    srcs = ["frontend_attributes_test.py"],
+    deps = [
+        "//jax",
+        "//jax:core",
+        "//jax:test_util",
+        "//third_party/py/absl:app",
+        "//third_party/py/absl/logging",
+        "//third_party/py/absl/testing:absltest",
+        "//third_party/py/numpy",
+        "//third_party/py/scipy",
+    ],
+)
+
+py_test(
     name = "pretty_printer_test",
     srcs = ["pretty_printer_test.py"],
     deps = [

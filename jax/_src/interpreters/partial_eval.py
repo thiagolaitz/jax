@@ -898,8 +898,11 @@ def new_eqn_recipe(in_tracers: Sequence[JaxprTracer],
     assert ("donated_invars" in params and
             len(params["donated_invars"]) == len(params["call_jaxpr"].invars))
   out_avals = [core.raise_to_shaped(t.aval) for t in out_tracers]
-  ctx = ctx or JaxprEqnContext(compute_on.current_compute_type(),
-                               config.threefry_partitionable.value)
+  ctx = ctx or JaxprEqnContext(
+      compute_on.current_compute_type(),
+      config.threefry_partitionable.value,
+      core.thread_local_attributes.val,
+  )
   return JaxprEqnRecipe(object(), tuple(in_tracers), map(ref, out_tracers),
                         out_avals, primitive, params, effects, source_info,
                         ctx)
@@ -1259,19 +1262,27 @@ def _partial_eval_jaxpr_custom_cached(
         resvars = [newvar(v.aval) for v in eqn.outvars]
         outvars_copy = list[Atom](eqn.outvars)
         offload_eqn = core.JaxprEqn(
-            outvars_copy, resvars, device_put_p,
+            outvars_copy,
+            resvars,
+            device_put_p,
             dict(device=TransferToMemoryKind(policy.dst), src=None),
-            set(), source_info_util.new_source_info(),
-            JaxprEqnContext(None, False))
+            set(),
+            source_info_util.new_source_info(),
+            JaxprEqnContext(None, False, core.thread_local_attributes.val),
+        )
         known_eqns.append(offload_eqn)
         # resvars are known and available in the backward jaxpr.
         map(partial(write, False, True), resvars)
         residuals.update(resvars)
         reload_eqn = core.JaxprEqn(
-            resvars, eqn.outvars, device_put_p,  # type: ignore
+            resvars,
+            eqn.outvars,
+            device_put_p,  # type: ignore
             dict(device=TransferToMemoryKind(policy.src), src=None),
-            set(), source_info_util.new_source_info(),
-            JaxprEqnContext(None, False))
+            set(),
+            source_info_util.new_source_info(),
+            JaxprEqnContext(None, False, core.thread_local_attributes.val),
+        )
         staged_eqns.append(reload_eqn)
         # outvars are known and available in the backward jaxpr.
         map(partial(write, False, True), eqn.outvars)
@@ -2819,7 +2830,6 @@ def inline_jaxpr_into_trace(trace: DynamicJaxprTrace, jaxpr: Jaxpr, consts,
           name_stack=source_info.name_stack + eqn.source_info.name_stack)
     else:
       eqn_source_info = source_info
-
     new_eqn = core.new_jaxpr_eqn(invars, outvars, eqn.primitive, eqn.params,
                                  eqn.effects, eqn_source_info)
     trace.frame.add_eqn(new_eqn)
