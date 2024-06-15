@@ -1045,10 +1045,6 @@ class VectorLayoutInferer {
                 ? (*second_minor_offset + second_minor_idx) %
                       layout->vregSlice(target_shape_)[0]
                 : LayoutOffset();
-        TPU_CHECK_OP(!res_second_minor_offset.has_value() ||
-                         *res_second_minor_offset < layout->tiling()[0],
-                     "Not implemented: Slice does not start on the first tile "
-                     "of a VReg");
         setLayout(op, layout,
                   VectorLayout(layout->bitwidth(),
                                {res_second_minor_offset, layout->offsets()[1]},
@@ -1185,10 +1181,6 @@ class VectorLayoutInferer {
       new_layout_offsets[1] =
           (*(offsets.end() - 1) + *input_layout->offsets()[1]) % vreg_slice[1];
     }
-    TPU_CHECK_OP(
-        new_layout_offsets[0].value_or(0) < input_layout->tiling()[0] &&
-            new_layout_offsets[1].value_or(0) < input_layout->tiling()[1],
-        "Not implemented: Resulting offsets are not in first tile within vreg");
     for (auto stride : strides_attr) {
       TPU_CHECK_OP(stride.cast<IntegerAttr>().getInt() == 1,
                    "Only trivial strides supported.");
