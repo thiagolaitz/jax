@@ -277,12 +277,16 @@ cc_library(
         "//jaxlib/gpu:lu_pivot_kernels.cc",
     ],
     hdrs = ["//jaxlib/gpu:lu_pivot_kernels.h"],
+    copts = ["-fexceptions"],
+    features = ["-use_header_modules"],
     deps = [
         ":cuda_gpu_kernel_helpers",
         ":cuda_lu_pivot_kernels_impl",
         ":cuda_vendor",
         "@xla//xla/ffi/api:c_api",
         "@xla//xla/ffi/api:ffi",
+        "@com_google_absl//absl/algorithm:container",
+        "@com_google_absl//absl/strings:str_format",
         "@local_config_cuda//cuda:cuda_headers",
     ],
 )
@@ -296,7 +300,7 @@ cuda_library(
     deps = [
         ":cuda_gpu_kernel_helpers",
         ":cuda_vendor",
-        "@xla//xla/ffi/api:c_api",
+        "@xla//xla/ffi/api:ffi",
         "@xla//xla/service:custom_call_status",
         "@local_config_cuda//cuda:cuda_headers",
     ],
