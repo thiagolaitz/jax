@@ -34,7 +34,7 @@ import numpy as np
 
 partial = functools.partial
 DEFAULT_MASK_VALUE = -0.7 * float(np.finfo(np.dtype("float32")).max)
-NUM_LANES = 128
+NUM_LANES = 64
 NUM_SUBLANES = 8
 # We predefine some useful dimension numbers for dot_general
 NN_DIM_NUMBERS = (((1,), (0,)), ((), ()))  # standard matmul
