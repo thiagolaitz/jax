@@ -616,10 +616,6 @@ def lower_jaxpr_to_module(
     dynamic_shape_replacement_enabled: bool = False,
 ) -> tuple[Module, tuple[Any, ...]]:
   # NOTE: We should bump this periodically
-  if is_cloud_tpu_older_than(2025, 1, 10):
-    raise RuntimeError(
-        "Pallas TPU requires a libTPU version that's at most a month old"
-    )
   debug_info = jaxpr.debug_info
   if dynamic_shape_replacement_enabled:
     _mosaic_lowering_dynamic_shape_env = LoweringDynamicShapeEnv()
